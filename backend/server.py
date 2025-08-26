@@ -120,7 +120,7 @@ async def generate_persona(request: GeneratePersonaRequest):
             if not api_key:
                 raise HTTPException(status_code=500, detail="Emergent LLM key not configured")
         else:
-            if not request.openai_api_key:
+            if not request.openai_api_key or not request.openai_api_key.strip():
                 raise HTTPException(status_code=400, detail="OpenAI API key required when not using Emergent key")
             api_key = request.openai_api_key
         
@@ -160,14 +160,16 @@ Respond with ONLY the JSON, no additional text."""
         except json.JSONDecodeError:
             # Fallback if JSON parsing fails
             lines = response.strip().split('\n')
-            goal = "Execute the assigned task with expertise and attention to detail."
+            goal = f"Execute {request.role.lower()} responsibilities with expertise and attention to detail."
             backstory = f"A seasoned {request.role.lower()} with extensive experience in handling complex challenges and delivering high-quality results."
             
             return PersonaResponse(goal=goal, backstory=backstory)
             
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating persona: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate persona: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate persona")
 
 @api_router.post("/teams", response_model=dict)
 async def create_team(request: CreateTeamRequest):
