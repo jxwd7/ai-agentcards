@@ -199,11 +199,17 @@ async def get_team(team_id: str):
         if not team:
             raise HTTPException(status_code=404, detail="Team not found")
         
+        # Remove MongoDB ObjectId to avoid serialization issues
+        if "_id" in team:
+            del team["_id"]
+        
         return team
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving team: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve team: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve team")
 
 @api_router.post("/generate-yaml")
 async def generate_yaml(request: YAMLGenerateRequest):
