@@ -222,14 +222,20 @@ async def generate_yaml(request: YAMLGenerateRequest):
         if not team:
             raise HTTPException(status_code=404, detail="Team not found")
         
+        # Remove MongoDB ObjectId to avoid serialization issues
+        if "_id" in team:
+            del team["_id"]
+        
         # Generate YAML content
         yaml_content = generate_crewai_yaml(team)
         
         return {"yaml": yaml_content, "filename": f"{team['mission']['name'].replace(' ', '_').lower()}_crew.yaml"}
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating YAML: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate YAML: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate YAML")
 
 def generate_crewai_yaml(team_data: dict) -> str:
     """Generate CrewAI-compatible YAML configuration"""
