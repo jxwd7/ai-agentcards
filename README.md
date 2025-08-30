@@ -20,7 +20,7 @@ A powerful, intuitive web application that empowers non-technical users to creat
 
 ## 🚀 Live Application
 
-**Access the wizard at:** https://nocode-agents-3.preview.emergentagent.com
+**Access the wizard at:** https://crewgen.preview.emergentagent.com
 
 ## 📋 6-Step Wizard Process
 
@@ -88,7 +88,7 @@ process: sequential
 
 ## 🚀 Getting Started
 
-1. **Visit the Application**: https://nocode-agents-3.preview.emergentagent.com
+1. **Visit the Application**: https://crewgen.preview.emergentagent.com
 2. **Start with Step 1**: Define your mission and objectives
 3. **Follow the Wizard**: Complete all 6 steps sequentially
 4. **Generate YAML**: Download your CrewAI configuration file
