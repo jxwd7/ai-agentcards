@@ -293,6 +293,10 @@ def main():
     test_results.append(tester.test_root_endpoint())
     test_results.append(tester.test_get_tools())
     
+    # LiveKit voice agent tests
+    test_results.append(tester.test_livekit_token_generation())
+    test_results.append(tester.test_intelligent_team_generation())
+    
     # Persona generation tests
     test_results.append(tester.test_generate_persona_emergent_key())
     test_results.append(tester.test_generate_persona_openai_key())
