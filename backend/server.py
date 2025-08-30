@@ -446,15 +446,8 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
         if not livekit_api_key or not livekit_api_secret:
             raise HTTPException(status_code=500, detail="LiveKit credentials not configured")
         
-        # Calculate TTL (24 hours from now)
-        ttl_seconds = 24 * 60 * 60  # 24 hours
-        
-        # Generate access token with TTL
-        token = api.AccessToken(
-            api_key=livekit_api_key, 
-            api_secret=livekit_api_secret,
-            ttl=ttl_seconds
-        )
+        # Generate access token
+        token = api.AccessToken(livekit_api_key, livekit_api_secret)
         
         # Set participant identity and grants
         token.with_identity(request.participant_name) \
@@ -466,11 +459,14 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
                  can_subscribe=True,
              ))
         
+        # Set TTL (24 hours)
+        token.ttl = 24 * 60 * 60
+        
         jwt_token = token.to_jwt()
         
         return {
             "token": jwt_token,
-            "url": os.environ.get('LIVEKIT_URL', 'ws://localhost:7880'),
+            "url": os.environ.get('LIVEKIT_URL', 'wss://localhost:7880'),
             "room_name": request.room_name
         }
         
