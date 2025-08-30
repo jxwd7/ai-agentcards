@@ -446,20 +446,25 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
         if not livekit_api_key or not livekit_api_secret:
             raise HTTPException(status_code=500, detail="LiveKit credentials not configured")
         
-        # Generate access token
-        token = api.AccessToken(livekit_api_key, livekit_api_secret) \
-            .with_identity(request.participant_name) \
-            .with_name(request.participant_name) \
-            .with_grants(api.VideoGrants(
-                room_join=True,
-                room=request.room_name,
-                can_publish=True,
-                can_subscribe=True,
-            ))
+        # Calculate TTL (24 hours from now)
+        ttl_seconds = 24 * 60 * 60  # 24 hours
         
-        # Set token expiration (24 hours from now)
-        import time
-        token.ttl = int(time.time()) + (24 * 60 * 60)  # 24 hours in seconds from now
+        # Generate access token with TTL
+        token = api.AccessToken(
+            api_key=livekit_api_key, 
+            api_secret=livekit_api_secret,
+            ttl=ttl_seconds
+        )
+        
+        # Set participant identity and grants
+        token.with_identity(request.participant_name) \
+             .with_name(request.participant_name) \
+             .with_grants(api.VideoGrants(
+                 room_join=True,
+                 room=request.room_name,
+                 can_publish=True,
+                 can_subscribe=True,
+             ))
         
         jwt_token = token.to_jwt()
         
