@@ -10,6 +10,8 @@ from typing import List, Dict, Optional, Literal
 import uuid
 from datetime import datetime
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from livekit import api
+import time
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
