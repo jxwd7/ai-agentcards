@@ -92,11 +92,56 @@ class CreateTeamRequest(BaseModel):
 class YAMLGenerateRequest(BaseModel):
     team_id: str
 
-# Predefined CrewAI tools
+# Comprehensive CrewAI tools catalog
 AVAILABLE_TOOLS = [
-    {"id": "google_search", "name": "Google Search", "description": "Search Google for information", "class_name": "SerperDevTool"},
-    {"id": "website_search", "name": "Website Search", "description": "Search specific websites for content", "class_name": "WebsiteSearchTool"},
-    {"id": "file_read", "name": "Read a File", "description": "Read and analyze file contents", "class_name": "FileReadTool"},
+    # Search & Research
+    {"id": "serper_search", "name": "Google Search", "description": "Perform web searches and retrieve search results", "class_name": "SerperDevTool", "category": "Search & Research"},
+    {"id": "website_search", "name": "Website Search", "description": "Search website content, optimized for web data extraction", "class_name": "WebsiteSearchTool", "category": "Search & Research"},
+    {"id": "exa_search", "name": "EXA Search", "description": "Perform exhaustive searches across various data sources", "class_name": "EXASearchTool", "category": "Search & Research"},
+    {"id": "github_search", "name": "GitHub Search", "description": "Search within GitHub repositories for code and documentation", "class_name": "GithubSearchTool", "category": "Search & Research"},
+    {"id": "youtube_channel_search", "name": "YouTube Channel Search", "description": "Search within YouTube channels for video content analysis", "class_name": "YoutubeChannelSearchTool", "category": "Search & Research"},
+    {"id": "youtube_video_search", "name": "YouTube Video Search", "description": "Search within YouTube videos for data extraction", "class_name": "YoutubeVideoSearchTool", "category": "Search & Research"},
+    
+    # File & Document Management
+    {"id": "file_read", "name": "File Reader", "description": "Read content from various file types, including text and markdown", "class_name": "FileReadTool", "category": "File & Document"},
+    {"id": "file_write", "name": "File Writer", "description": "Write content to files, create new documents, and save processed data", "class_name": "FileWriteTool", "category": "File & Document"},
+    {"id": "pdf_search", "name": "PDF Search", "description": "Search and extract text from PDF documents efficiently", "class_name": "PDFSearchTool", "category": "File & Document"},
+    {"id": "docx_search", "name": "Word Document Search", "description": "Search through Microsoft Word documents and extract relevant content", "class_name": "DOCXSearchTool", "category": "File & Document"},
+    {"id": "json_search", "name": "JSON Search", "description": "Parse and search through JSON files with advanced query capabilities", "class_name": "JSONSearchTool", "category": "File & Document"},
+    {"id": "csv_search", "name": "CSV Search", "description": "Process and search through CSV files, extracting specific rows and columns", "class_name": "CSVSearchTool", "category": "File & Document"},
+    {"id": "directory_read", "name": "Directory Reader", "description": "Read and list directory contents, file structures, and metadata", "class_name": "DirectoryReadTool", "category": "File & Document"},
+    
+    # Web Scraping & Browsing
+    {"id": "scrape_website", "name": "Website Scraper", "description": "Facilitates scraping entire websites for comprehensive data collection", "class_name": "ScrapeWebsiteTool", "category": "Web Scraping"},
+    {"id": "selenium_scraping", "name": "Selenium Scraper", "description": "Allows for precise extraction of content from web pages using CSS selectors", "class_name": "SeleniumScrapingTool", "category": "Web Scraping"},
+    {"id": "firecrawl_search", "name": "Firecrawl Search", "description": "Search webpages using Firecrawl and return the results", "class_name": "FirecrawlSearchTool", "category": "Web Scraping"},
+    
+    # Database & Data
+    {"id": "pg_search", "name": "PostgreSQL Search", "description": "Optimized for searching within PostgreSQL databases", "class_name": "PGSearchTool", "category": "Database & Data"},
+    {"id": "mysql_search", "name": "MySQL Search", "description": "Interact with MySQL databases for data retrieval", "class_name": "MySQLSearchTool", "category": "Database & Data"},
+    {"id": "nl2sql", "name": "Natural Language to SQL", "description": "Convert natural language queries into SQL commands", "class_name": "NL2SQLTool", "category": "Database & Data"},
+    
+    # AI & Machine Learning
+    {"id": "dalle_tool", "name": "DALL-E Image Generator", "description": "Generate images using the DALL-E API", "class_name": "DALL-ETool", "category": "AI & ML"},
+    {"id": "vision_tool", "name": "Vision Tool", "description": "Process vision tasks and analyze images", "class_name": "VisionTool", "category": "AI & ML"},
+    {"id": "code_interpreter", "name": "Code Interpreter", "description": "Interpret and execute Python code", "class_name": "CodeInterpreterTool", "category": "AI & ML"},
+    
+    # Communication & Collaboration
+    {"id": "gmail_tool", "name": "Gmail", "description": "Manage emails and drafts", "class_name": "GmailTool", "category": "Communication"},
+    {"id": "slack_tool", "name": "Slack", "description": "Send workspace notifications and alerts", "class_name": "SlackTool", "category": "Communication"},
+    
+    # Project Management
+    {"id": "jira_tool", "name": "Jira", "description": "Issue tracking and project management", "class_name": "JiraTool", "category": "Project Management"},
+    {"id": "github_tool", "name": "GitHub", "description": "Repository and issue management", "class_name": "GitHubTool", "category": "Project Management"},
+    {"id": "notion_tool", "name": "Notion", "description": "Page and database management", "class_name": "NotionTool", "category": "Project Management"},
+    
+    # Business & Finance
+    {"id": "stripe_tool", "name": "Stripe", "description": "Payment processing and customer management", "class_name": "StripeTool", "category": "Business & Finance"},
+    {"id": "salesforce_tool", "name": "Salesforce", "description": "CRM account and opportunity management", "class_name": "SalesforceTool", "category": "Business & Finance"},
+    
+    # Productivity & Storage
+    {"id": "google_sheets", "name": "Google Sheets", "description": "Spreadsheet data synchronization", "class_name": "GoogleSheetsTool", "category": "Productivity"},
+    {"id": "google_calendar", "name": "Google Calendar", "description": "Event and schedule management", "class_name": "GoogleCalendarTool", "category": "Productivity"},
 ]
 
 # API Endpoints
