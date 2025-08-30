@@ -2,12 +2,149 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import IntelligentWizardContainer from "./IntelligentWizard";
 import { 
   Step3RolePersonaAssignment, 
   Step4ToolIdentification, 
   Step5WorkflowOrchestration, 
   Step6ReviewGeneration 
 } from "./WizardSteps";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+// Main Home Component with Wizard Selection
+const Home = () => {
+  const [selectedWizard, setSelectedWizard] = useState(null);
+
+  if (selectedWizard === "intelligent") {
+    return <IntelligentWizardContainer />;
+  }
+  
+  if (selectedWizard === "classic") {
+    return <WizardContainer />;
+  }
+
+  // Wizard Selection Screen
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto text-center">
+          
+          {/* Header */}
+          <div className="mb-12">
+            <h1 className="text-5xl font-bold text-slate-800 dark:text-slate-100 mb-6">
+              🤖 AI Agent Team Configuration Wizard
+            </h1>
+            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8">
+              Choose your preferred way to create powerful AI agent teams for CrewAI framework
+            </p>
+          </div>
+
+          {/* Wizard Options */}
+          <div className="grid md:grid-cols-2 gap-8">
+            
+            {/* Intelligent Wizard */}
+            <div 
+              onClick={() => setSelectedWizard("intelligent")}
+              className="p-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-4xl mb-4">✨</div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+                AI-Powered Intelligent Wizard
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">
+                Describe your mission and AI will automatically generate the complete team configuration with tasks, agents, and tools.
+              </p>
+              
+              <div className="space-y-3 text-sm text-left">
+                <div className="flex items-center text-green-600">
+                  <span className="mr-2">✓</span> 2-3 minute completion time
+                </div>
+                <div className="flex items-center text-green-600">
+                  <span className="mr-2">✓</span> AI generates everything automatically
+                </div>
+                <div className="flex items-center text-green-600">
+                  <span className="mr-2">✓</span> Smart tool recommendations
+                </div>
+                <div className="flex items-center text-green-600">
+                  <span className="mr-2">✓</span> Full customization options
+                </div>
+              </div>
+              
+              <button className="mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-colors">
+                Start Intelligent Wizard
+              </button>
+            </div>
+
+            {/* Classic Wizard */}
+            <div 
+              onClick={() => setSelectedWizard("classic")}
+              className="p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-4xl mb-4">🛠️</div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+                Classic Step-by-Step Wizard
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">
+                Go through the traditional 6-step guided process to manually configure your AI agent team.
+              </p>
+              
+              <div className="space-y-3 text-sm text-left">
+                <div className="flex items-center text-blue-600">
+                  <span className="mr-2">✓</span> 6-step guided process
+                </div>
+                <div className="flex items-center text-blue-600">
+                  <span className="mr-2">✓</span> Full manual control
+                </div>
+                <div className="flex items-center text-blue-600">
+                  <span className="mr-2">✓</span> Learn multi-agent concepts
+                </div>
+                <div className="flex items-center text-blue-600">
+                  <span className="mr-2">✓</span> Educational experience
+                </div>
+              </div>
+              
+              <button className="mt-6 px-6 py-3 bg-slate-600 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors">
+                Start Classic Wizard
+              </button>
+            </div>
+          </div>
+
+          {/* Feature Comparison */}
+          <div className="mt-12 p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+              Both wizards generate 100% valid CrewAI YAML configurations
+            </h3>
+            <div className="grid md:grid-cols-3 gap-6 text-center">
+              <div>
+                <div className="text-2xl mb-2">⚡</div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <strong>Under 10 minutes</strong><br />
+                  Complete team setup
+                </p>
+              </div>
+              <div>
+                <div className="text-2xl mb-2">🎯</div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <strong>No coding required</strong><br />
+                  Intuitive interface
+                </p>
+              </div>
+              <div>
+                <div className="text-2xl mb-2">📥</div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <strong>Ready-to-use YAML</strong><br />
+                  Download & deploy
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
