@@ -109,6 +109,10 @@ class IntelligentTeamResponse(BaseModel):
 class YAMLGenerateRequest(BaseModel):
     team_id: str
 
+class LiveKitTokenRequest(BaseModel):
+    room_name: str
+    participant_name: str
+
 # Comprehensive CrewAI tools catalog
 AVAILABLE_TOOLS = [
     # Search & Research
