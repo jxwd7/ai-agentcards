@@ -89,6 +89,21 @@ class CreateTeamRequest(BaseModel):
     selected_tools: List[str]
     workflow_type: Literal["sequential", "hierarchical"]
 
+class IntelligentTeamRequest(BaseModel):
+    mission_name: str
+    mission_objective: str
+    mission_description: Optional[str] = None
+    use_emergent_key: bool = True
+    openai_api_key: Optional[str] = None
+
+class IntelligentTeamResponse(BaseModel):
+    mission: Mission
+    tasks: List[Task]
+    agents: List[Agent]
+    recommended_tools: List[str]
+    workflow_type: Literal["sequential", "hierarchical"]
+    explanation: str
+
 class YAMLGenerateRequest(BaseModel):
     team_id: str
 
