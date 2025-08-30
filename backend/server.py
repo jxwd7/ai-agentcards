@@ -446,7 +446,7 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
         if not livekit_api_key or not livekit_api_secret:
             raise HTTPException(status_code=500, detail="LiveKit credentials not configured")
         
-        # Generate access token
+        # Generate access token (without TTL for now - will use default)
         token = api.AccessToken(livekit_api_key, livekit_api_secret)
         
         # Set participant identity and grants
@@ -459,9 +459,6 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
                  can_subscribe=True,
              ))
         
-        # Set TTL (24 hours)
-        token.ttl = 24 * 60 * 60
-        
         jwt_token = token.to_jwt()
         
         return {
@@ -472,7 +469,7 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
         
     except Exception as e:
         logger.error(f"Error generating LiveKit token: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate LiveKit token")
+        raise HTTPException(status_code=500, detail=f"Token generation failed: {str(e)}")
 
 def generate_crewai_yaml(team_data: dict) -> str:
     """Generate CrewAI-compatible YAML configuration"""
