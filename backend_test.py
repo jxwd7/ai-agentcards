@@ -230,6 +230,56 @@ class AIAgentWizardAPITester:
         
         return success1 and success2
 
+    def test_livekit_token_generation(self):
+        """Test LiveKit token generation endpoint"""
+        success, response = self.run_test(
+            "Generate LiveKit Token",
+            "POST",
+            "livekit-token",
+            200,
+            data={
+                "room_name": "test-room-voice-agent",
+                "participant_name": "test-user-voice"
+            }
+        )
+        
+        if success and 'token' in response and 'url' in response:
+            print(f"   Generated token (first 50 chars): {response['token'][:50]}...")
+            print(f"   LiveKit URL: {response['url']}")
+            print(f"   Room name: {response['room_name']}")
+            return True, response
+        return False, {}
+
+    def test_intelligent_team_generation(self):
+        """Test intelligent team generation endpoint"""
+        success, response = self.run_test(
+            "Generate Intelligent Team",
+            "POST",
+            "generate-intelligent-team",
+            200,
+            data={
+                "mission_name": "E-commerce Growth Strategy",
+                "mission_objective": "Increase online sales and improve customer experience for our e-commerce store",
+                "mission_description": "We need to boost our online sales by 30% and improve customer satisfaction",
+                "use_emergent_key": True
+            }
+        )
+        
+        if success and 'mission' in response and 'tasks' in response and 'agents' in response:
+            mission = response['mission']
+            tasks = response['tasks']
+            agents = response['agents']
+            tools = response.get('recommended_tools', [])
+            
+            print(f"   Generated Mission: {mission['name']}")
+            print(f"   Number of Tasks: {len(tasks)}")
+            print(f"   Number of Agents: {len(agents)}")
+            print(f"   Recommended Tools: {len(tools)}")
+            print(f"   Workflow Type: {response.get('workflow_type', 'N/A')}")
+            
+            return True, response
+        return False, {}
+
 def main():
     print("🚀 Starting AI Agent Team Configuration Wizard API Tests")
     print("=" * 60)
