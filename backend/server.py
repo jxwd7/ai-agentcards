@@ -457,8 +457,9 @@ async def generate_livekit_token(request: LiveKitTokenRequest):
                 can_subscribe=True,
             ))
         
-        # Set token expiration (24 hours)
-        token.ttl = 24 * 60 * 60  # 24 hours in seconds
+        # Set token expiration (24 hours from now)
+        import time
+        token.ttl = int(time.time()) + (24 * 60 * 60)  # 24 hours in seconds from now
         
         jwt_token = token.to_jwt()
         
