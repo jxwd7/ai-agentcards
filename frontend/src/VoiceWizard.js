@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-
 // Voice Wizard Container (Demo Version - Ready for LiveKit Integration)
 const VoiceWizardContainer = () => {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
