@@ -2,275 +2,307 @@ import asyncio
 import json
 import logging
 import os
-from typing import Dict, Optional
-from livekit import rtc, api
-from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, llm
+from typing import Dict, Optional, List
+from livekit import agents, rtc
+from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice_assistant import VoiceAssistant
 from livekit.plugins import deepgram, openai, silero
 import aiohttp
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from dotenv import load_dotenv
 
-logger = logging.getLogger("voice-agent")
+# Load environment variables
+load_dotenv()
+
+logger = logging.getLogger("crewai-voice-agent")
+
+class CrewAIConversationContext:
+    def __init__(self):
+        self.conversation_history: List[Dict[str, str]] = []
+        self.extracted_requirements = {
+            "mission_name": "",
+            "mission_objective": "",
+            "mission_description": "",
+            "industry": "",
+            "target_audience": "",
+            "goals": []
+        }
+        self.state = "greeting"  # greeting -> collecting -> analyzing -> generating -> reviewing
+        self.generated_team = None
+
+    def add_message(self, role: str, content: str):
+        """Add a message to conversation history"""
+        self.conversation_history.append({
+            "role": role,
+            "content": content,
+            "timestamp": str(asyncio.get_event_loop().time())
+        })
+
+    def extract_requirements_from_history(self) -> Dict:
+        """Extract structured requirements from conversation history"""
+        # Combine user messages to analyze
+        user_messages = [msg["content"] for msg in self.conversation_history if msg["role"] == "user"]
+        combined_text = " ".join(user_messages).lower()
+        
+        # Simple keyword extraction (in production, use more sophisticated NLP)
+        requirements = self.extracted_requirements.copy()
+        
+        # Extract mission type from keywords
+        mission_keywords = {
+            "marketing": "Marketing Campaign",
+            "sales": "Sales Growth Initiative", 
+            "website": "Website Optimization Project",
+            "ecommerce": "E-commerce Growth Strategy",
+            "customer": "Customer Experience Enhancement",
+            "content": "Content Strategy Development"
+        }
+        
+        for keyword, mission_type in mission_keywords.items():
+            if keyword in combined_text:
+                requirements["mission_name"] = mission_type
+                break
+        
+        if not requirements["mission_name"]:
+            requirements["mission_name"] = "Business Growth Project"
+        
+        # Use full conversation as objective
+        requirements["mission_objective"] = " ".join(user_messages)
+        requirements["mission_description"] = f"Project requirements extracted from conversation: {combined_text[:300]}..."
+        
+        return requirements
+
+    def should_generate_team(self) -> bool:
+        """Determine if we have enough information to generate AI team"""
+        user_messages = [msg for msg in self.conversation_history if msg["role"] == "user"]
+        
+        # Need at least 2 meaningful exchanges
+        if len(user_messages) < 2:
+            return False
+            
+        # Check for business context
+        combined_text = " ".join([msg["content"].lower() for msg in user_messages])
+        
+        has_business_goal = any(keyword in combined_text for keyword in [
+            "increase", "improve", "grow", "boost", "optimize", "enhance", 
+            "marketing", "sales", "business", "website", "customers"
+        ])
+        
+        has_specific_context = any(keyword in combined_text for keyword in [
+            "company", "store", "website", "product", "service", "online",
+            "conversion", "traffic", "revenue", "customers"
+        ])
+        
+        return has_business_goal and has_specific_context
 
 class CrewAIVoiceAgent:
     def __init__(self):
-        self.api_base_url = "http://localhost:8001/api"
-        self.conversation_context = []
-        self.generated_team = None
-        self.current_state = "greeting"  # greeting, collecting_info, generating, reviewing, complete
+        self.api_base_url = os.getenv("API_BASE_URL", "http://localhost:8001/api")
+        self.context = CrewAIConversationContext()
         
-    async def create_conversational_llm_chat(self, api_key: str) -> LlmChat:
-        """Create LLM chat configured for conversational voice interaction"""
-        return LlmChat(
-            api_key=api_key,
-            session_id="voice-agent-conversation",
-            system_message=self._get_conversational_system_prompt()
-        ).with_model("openai", "gpt-4o-mini")
-    
-    def _get_conversational_system_prompt(self) -> str:
-        return """You are a friendly, helpful AI assistant specialized in creating AI agent teams for the CrewAI framework. 
-
-Your goal is to have a natural conversation with users to understand their needs and automatically generate complete AI agent team configurations.
-
-CONVERSATION FLOW:
-1. GREETING: Welcome them warmly and ask about their project/business goal
-2. INFORMATION GATHERING: Ask clarifying questions about:
-   - Business/project type and industry
-   - Specific goals and objectives  
-   - Target audience or market
-   - Timeline and constraints
-   - Any specific requirements
-3. CONFIRMATION: Summarize their needs and confirm understanding
-4. GENERATION: Explain that you're creating their team (this happens automatically)
-5. REVIEW: Present the generated team and ask for feedback
-
-CONVERSATION STYLE:
-- Be conversational, friendly, and encouraging
-- Ask one question at a time to avoid overwhelming
-- Use natural language, not technical jargon
-- Show enthusiasm about their project
-- Keep responses concise but warm (2-3 sentences max)
-- Don't mention technical terms like "YAML" or "CrewAI" unless they ask
-
-CURRENT STATE: {state}
-CONVERSATION CONTEXT: {context}
-
-Based on the conversation so far, respond naturally to continue gathering information or provide appropriate guidance."""
-
-    async def process_voice_input(self, text: str, api_key: str) -> str:
-        """Process voice input and generate appropriate response"""
+    async def generate_conversational_response(self, user_input: str) -> str:
+        """Generate contextual response using LLM"""
         try:
-            # Add to conversation context
-            self.conversation_context.append({"role": "user", "content": text})
+            self.context.add_message("user", user_input)
             
             # Create conversational LLM
-            chat = await self.create_conversational_llm_chat(api_key)
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            if not api_key:
+                return "I apologize, but I'm having trouble connecting to my AI services. Please try again later."
             
-            # Generate contextual system prompt
-            context_summary = self._summarize_context()
-            system_prompt = self._get_conversational_system_prompt().format(
-                state=self.current_state,
-                context=context_summary
-            )
+            chat = LlmChat(
+                api_key=api_key,
+                session_id="voice-conversation",
+                system_message=self._get_system_prompt()
+            ).with_model("openai", "gpt-4o-mini")
             
-            # Update system message
-            chat.system_message = system_prompt
+            # Create context-aware prompt
+            conversation_context = self._build_conversation_context()
             
-            # Get AI response
-            user_message = UserMessage(text=text)
+            prompt = f"""
+Context: {conversation_context}
+
+User just said: "{user_input}"
+
+Current conversation state: {self.context.state}
+
+Respond naturally and conversationally. Ask ONE follow-up question to gather more information about their business needs. Keep responses to 2-3 sentences maximum.
+
+If you have enough information to create their AI team (they've mentioned business goals and some context), end your response with "READY_TO_GENERATE" on a new line.
+"""
+            
+            user_message = UserMessage(text=prompt)
             response = await chat.send_message(user_message)
             
-            # Add to conversation context
-            self.conversation_context.append({"role": "assistant", "content": response})
+            # Check if ready to generate team
+            if "READY_TO_GENERATE" in response:
+                response = response.replace("READY_TO_GENERATE", "").strip()
+                self.context.state = "generating"
+                
+                # Trigger team generation
+                await self._generate_ai_team()
+                
+                if self.context.generated_team:
+                    team_summary = self._create_team_summary()
+                    response += f"\n\n{team_summary}"
+                    self.context.state = "reviewing"
             
-            # Check if we have enough information to generate team
-            if self._should_generate_team():
-                await self._generate_team_from_conversation(api_key)
-                self.current_state = "reviewing"
-                return f"{response}\n\nGreat! I've created your AI agent team. Let me tell you about the specialists I've assembled for you..."
-            
+            self.context.add_message("assistant", response)
             return response
             
         except Exception as e:
-            logger.error(f"Error processing voice input: {str(e)}")
+            logger.error(f"Error generating response: {str(e)}")
             return "I apologize, but I encountered an issue. Could you please repeat that?"
     
-    def _summarize_context(self) -> str:
-        """Create a summary of the conversation context"""
-        if not self.conversation_context:
-            return "No conversation history yet."
+    def _get_system_prompt(self) -> str:
+        return """You are a friendly, expert AI assistant specialized in creating AI agent teams for business automation. 
+
+Your role is to have natural conversations with users to understand their business needs, then help them create specialized AI teams.
+
+Conversation style:
+- Be conversational, warm, and encouraging
+- Ask ONE follow-up question at a time
+- Use simple, non-technical language
+- Show genuine interest in their business
+- Keep responses concise (2-3 sentences max)
+
+Your goal is to understand:
+1. What type of business/project they have
+2. What specific challenge or goal they want to address
+3. Who their target audience/customers are
+4. What success looks like to them
+
+Once you have this basic information, you can help them create their AI team."""
+
+    def _build_conversation_context(self) -> str:
+        """Build conversation context for LLM"""
+        if not self.context.conversation_history:
+            return "New conversation starting."
         
-        # Get last few exchanges for context
-        recent_context = self.conversation_context[-6:]  # Last 3 exchanges
-        summary = []
-        for entry in recent_context:
-            role = "User" if entry["role"] == "user" else "Assistant"
-            summary.append(f"{role}: {entry['content'][:100]}...")
+        recent_messages = self.context.conversation_history[-4:]  # Last 2 exchanges
+        context_parts = []
         
-        return " | ".join(summary)
+        for msg in recent_messages:
+            role = "User" if msg["role"] == "user" else "Assistant"
+            content = msg["content"][:150] + ("..." if len(msg["content"]) > 150 else "")
+            context_parts.append(f"{role}: {content}")
+        
+        return " | ".join(context_parts)
     
-    def _should_generate_team(self) -> bool:
-        """Determine if we have enough information to generate a team"""
-        if self.generated_team:
-            return False
-            
-        # Look for key information in conversation
-        context_text = " ".join([entry["content"].lower() for entry in self.conversation_context if entry["role"] == "user"])
-        
-        # Check if we have business goal and some context
-        has_goal = any(keyword in context_text for keyword in [
-            "want", "need", "goal", "increase", "improve", "create", "build", 
-            "launch", "grow", "develop", "marketing", "sales", "business"
-        ])
-        
-        has_context = any(keyword in context_text for keyword in [
-            "company", "business", "customers", "product", "service", "website",
-            "online", "store", "sell", "market", "campaign", "strategy"
-        ])
-        
-        # Require at least 2 user inputs with meaningful content
-        meaningful_inputs = len([entry for entry in self.conversation_context 
-                               if entry["role"] == "user" and len(entry["content"]) > 20])
-        
-        return has_goal and has_context and meaningful_inputs >= 2
-    
-    async def _generate_team_from_conversation(self, api_key: str):
-        """Generate AI team from conversation context"""
+    async def _generate_ai_team(self):
+        """Generate AI team using the intelligent team generation API"""
         try:
-            # Extract mission information from conversation
-            mission_data = self._extract_mission_from_context()
+            requirements = self.context.extract_requirements_from_history()
             
-            # Call intelligent team generation API
             async with aiohttp.ClientSession() as session:
+                payload = {
+                    "mission_name": requirements["mission_name"],
+                    "mission_objective": requirements["mission_objective"],
+                    "mission_description": requirements["mission_description"],
+                    "use_emergent_key": True
+                }
+                
                 async with session.post(
                     f"{self.api_base_url}/generate-intelligent-team",
-                    json={
-                        "mission_name": mission_data["name"],
-                        "mission_objective": mission_data["objective"],
-                        "mission_description": mission_data["description"],
-                        "use_emergent_key": True
-                    }
+                    json=payload
                 ) as response:
                     if response.status == 200:
-                        self.generated_team = await response.json()
-                        self.current_state = "reviewing"
-                    
+                        self.context.generated_team = await response.json()
+                        logger.info("AI team generated successfully")
+                    else:
+                        logger.error(f"Failed to generate team: {response.status}")
+                        
         except Exception as e:
-            logger.error(f"Error generating team: {str(e)}")
+            logger.error(f"Error generating AI team: {str(e)}")
     
-    def _extract_mission_from_context(self) -> Dict[str, str]:
-        """Extract mission information from conversation context"""
-        # Combine user inputs
-        user_inputs = [entry["content"] for entry in self.conversation_context if entry["role"] == "user"]
-        combined_text = " ".join(user_inputs)
-        
-        # Simple extraction (in production, use more sophisticated NLP)
-        mission_name = self._extract_mission_name(combined_text)
-        mission_objective = combined_text[:500]  # Use full context as objective
-        mission_description = f"Extracted from conversation: {combined_text}"
-        
-        return {
-            "name": mission_name,
-            "objective": mission_objective,
-            "description": mission_description
-        }
-    
-    def _extract_mission_name(self, text: str) -> str:
-        """Extract or generate a mission name from text"""
-        # Look for business/project keywords
-        keywords = ["marketing", "sales", "campaign", "strategy", "business", "project", "website", "store"]
-        found_keywords = [kw for kw in keywords if kw in text.lower()]
-        
-        if found_keywords:
-            return f"{found_keywords[0].title()} Project"
-        else:
-            return "Business Growth Project"
-    
-    def get_team_summary(self) -> Optional[str]:
-        """Get a conversational summary of the generated team"""
-        if not self.generated_team:
-            return None
+    def _create_team_summary(self) -> str:
+        """Create a conversational summary of the generated team"""
+        if not self.context.generated_team:
+            return "I've prepared your team configuration. Would you like me to tell you about it?"
         
         try:
-            tasks = self.generated_team.get("tasks", [])
-            agents = self.generated_team.get("agents", [])
+            team = self.context.generated_team
+            agents = team.get("agents", [])
+            tasks = team.get("tasks", [])
+            tools = team.get("recommended_tools", [])
             
-            summary = f"I've created a team of {len(agents)} specialists for you:\n\n"
+            summary = f"Perfect! I've created a specialized team of {len(agents)} AI agents for you:\n\n"
             
-            for i, agent in enumerate(agents, 1):
-                task_title = "a specialized task"
-                if i <= len(tasks):
-                    task_title = tasks[i-1].get("title", "a specialized task")
-                
-                summary += f"{i}. **{agent['role']}** - {agent['goal'][:100]}...\n"
+            for i, agent in enumerate(agents[:3], 1):  # Limit to first 3 agents for voice
+                role = agent.get("role", f"Agent {i}")
+                summary += f"{i}. {role} - who will handle the specialized work for this area\n"
             
-            summary += f"\nI've also selected {len(self.generated_team.get('recommended_tools', []))} perfect tools "
-            summary += f"and set up a {self.generated_team.get('workflow_type', 'sequential')} workflow. "
-            summary += "Would you like me to generate your configuration file?"
+            summary += f"\nThey'll work together using {len(tools)} specialized tools "
+            summary += f"in a {team.get('workflow_type', 'sequential')} workflow. "
+            summary += "Would you like me to generate your CrewAI configuration file now?"
             
             return summary
             
         except Exception as e:
             logger.error(f"Error creating team summary: {str(e)}")
-            return "I've created your team configuration. Would you like me to tell you about it?"
+            return "Your AI team is ready! Would you like me to generate the configuration file?"
 
-
+# LiveKit Agent Implementation
 async def entrypoint(ctx: JobContext):
-    """Main entrypoint for the voice agent"""
-    initial_ctx = llm.ChatContext().append(
-        role="system",
-        text=(
-            "You are a voice assistant helping users create AI agent teams. "
-            "Have natural conversations to understand their needs, then guide them "
-            "through team creation. Be friendly, helpful, and conversational."
-        ),
+    """Main entrypoint for the LiveKit voice agent"""
+    
+    # Initialize our CrewAI voice agent
+    crewai_agent = CrewAIVoiceAgent()
+    
+    # Initial conversation context
+    initial_ctx = agents.llm.ChatContext()
+    initial_ctx.messages.append(
+        agents.llm.ChatMessage(
+            role="assistant",
+            content="Hello! I'm your AI assistant specialized in creating AI agent teams. I'd love to help you build the perfect team for your business. What kind of project or challenge are you working on?"
+        )
     )
     
-    # Initialize voice agent
-    voice_agent = CrewAIVoiceAgent()
+    # Connect to the room
+    await ctx.connect(auto_subscribe=agents.AutoSubscribe.AUDIO_ONLY)
+    logger.info(f"Connected to room: {ctx.room.name}")
     
-    # Connect to room
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-    
-    # Create voice assistant with proper configuration
+    # Create the voice assistant with our custom logic
     assistant = VoiceAssistant(
-        vad=silero.VAD.load(),  # Voice Activity Detection
-        stt=deepgram.STT(),     # Speech to Text
-        llm=openai.LLM(),       # Language Model
-        tts=openai.TTS(),       # Text to Speech
+        vad=silero.VAD.load(),
+        stt=deepgram.STT(model="nova-2-general"),
+        llm=openai.LLM(model="gpt-4o-mini"),  # We'll override this with our custom logic
+        tts=openai.TTS(voice="nova"),
         chat_ctx=initial_ctx,
     )
     
-    # Custom message handler for our CrewAI logic
+    # Override the LLM with our custom CrewAI logic
     @assistant.on("user_speech_committed")
     async def on_user_speech(user_msg: str):
-        """Handle user speech input"""
+        """Handle user speech input with our CrewAI logic"""
         try:
-            # Get Emergent LLM key
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            logger.info(f"User said: {user_msg}")
             
-            # Process through our CrewAI voice agent
-            response = await voice_agent.process_voice_input(user_msg, api_key)
+            # Generate response using our CrewAI agent
+            response = await crewai_agent.generate_conversational_response(user_msg)
             
-            # If team is generated, add team summary
-            if voice_agent.current_state == "reviewing":
-                team_summary = voice_agent.get_team_summary()
-                if team_summary:
-                    response = f"{response}\n\n{team_summary}"
-            
-            # Send response back through voice assistant
-            assistant.say(response)
+            # Have the assistant speak the response
+            await assistant.say(response)
             
         except Exception as e:
-            logger.error(f"Error in voice processing: {str(e)}")
-            assistant.say("I apologize, there was a technical issue. Could you please try again?")
+            logger.error(f"Error processing user speech: {str(e)}")
+            await assistant.say("I apologize, I had trouble understanding that. Could you please try again?")
     
-    # Start the voice assistant
+    # Start the assistant
     assistant.start(ctx.room)
+    
+    # Send initial greeting
+    await asyncio.sleep(1)  # Small delay to ensure connection is stable
+    await assistant.say("Hello! I'm your AI assistant specialized in creating AI agent teams. What kind of business project or challenge would you like help with today?")
     
     # Keep the agent running
     await assistant.aclose()
 
-
 if __name__ == "__main__":
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # Run the LiveKit agent
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
