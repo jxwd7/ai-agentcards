@@ -3,6 +3,7 @@ import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
 import IntelligentWizardContainer from "./IntelligentWizard";
+import VoiceWizardContainer from "./VoiceWizard";
 import { 
   Step3RolePersonaAssignment, 
   Step4ToolIdentification, 
