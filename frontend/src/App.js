@@ -43,12 +43,45 @@ const Home = () => {
           </div>
 
           {/* Wizard Options */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-3 gap-8">
             
+            {/* Voice Conversational Assistant */}
+            <div 
+              onClick={() => setSelectedWizard("voice")}
+              className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-2 border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-4xl mb-4">🎤</div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+                Voice Conversational Assistant
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">
+                Just talk naturally - AI listens, understands, and creates your complete team through voice conversation.
+              </p>
+              
+              <div className="space-y-3 text-sm text-left">
+                <div className="flex items-center text-purple-600">
+                  <span className="mr-2">✓</span> 1-2 minute conversation
+                </div>
+                <div className="flex items-center text-purple-600">
+                  <span className="mr-2">✓</span> Completely hands-free
+                </div>
+                <div className="flex items-center text-purple-600">
+                  <span className="mr-2">✓</span> Natural voice interaction
+                </div>
+                <div className="flex items-center text-purple-600">
+                  <span className="mr-2">✓</span> Revolutionary experience
+                </div>
+              </div>
+              
+              <button className="mt-6 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-colors">
+                Start Voice Assistant
+              </button>
+            </div>
+
             {/* Intelligent Wizard */}
             <div 
               onClick={() => setSelectedWizard("intelligent")}
-              className="p-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+              className="p-8 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
             >
               <div className="text-4xl mb-4">✨</div>
               <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">
@@ -59,21 +92,21 @@ const Home = () => {
               </p>
               
               <div className="space-y-3 text-sm text-left">
-                <div className="flex items-center text-green-600">
+                <div className="flex items-center text-blue-600">
                   <span className="mr-2">✓</span> 2-3 minute completion time
                 </div>
-                <div className="flex items-center text-green-600">
+                <div className="flex items-center text-blue-600">
                   <span className="mr-2">✓</span> AI generates everything automatically
                 </div>
-                <div className="flex items-center text-green-600">
+                <div className="flex items-center text-blue-600">
                   <span className="mr-2">✓</span> Smart tool recommendations
                 </div>
-                <div className="flex items-center text-green-600">
+                <div className="flex items-center text-blue-600">
                   <span className="mr-2">✓</span> Full customization options
                 </div>
               </div>
               
-              <button className="mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-colors">
+              <button className="mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-cyan-700 transition-colors">
                 Start Intelligent Wizard
               </button>
             </div>
@@ -81,7 +114,7 @@ const Home = () => {
             {/* Classic Wizard */}
             <div 
               onClick={() => setSelectedWizard("classic")}
-              className="p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+              className="p-8 bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-700 dark:to-gray-800 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
             >
               <div className="text-4xl mb-4">🛠️</div>
               <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">
@@ -92,16 +125,16 @@ const Home = () => {
               </p>
               
               <div className="space-y-3 text-sm text-left">
-                <div className="flex items-center text-blue-600">
+                <div className="flex items-center text-slate-600">
                   <span className="mr-2">✓</span> 6-step guided process
                 </div>
-                <div className="flex items-center text-blue-600">
+                <div className="flex items-center text-slate-600">
                   <span className="mr-2">✓</span> Full manual control
                 </div>
-                <div className="flex items-center text-blue-600">
+                <div className="flex items-center text-slate-600">
                   <span className="mr-2">✓</span> Learn multi-agent concepts
                 </div>
-                <div className="flex items-center text-blue-600">
+                <div className="flex items-center text-slate-600">
                   <span className="mr-2">✓</span> Educational experience
                 </div>
               </div>
@@ -115,9 +148,16 @@ const Home = () => {
           {/* Feature Comparison */}
           <div className="mt-12 p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-              Both wizards generate 100% valid CrewAI YAML configurations
+              All three wizards generate 100% valid CrewAI YAML configurations
             </h3>
-            <div className="grid md:grid-cols-3 gap-6 text-center">
+            <div className="grid md:grid-cols-4 gap-6 text-center">
+              <div>
+                <div className="text-2xl mb-2">🎤</div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <strong>Voice Assistant</strong><br />
+                  Talk naturally, AI does everything
+                </p>
+              </div>
               <div>
                 <div className="text-2xl mb-2">⚡</div>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
