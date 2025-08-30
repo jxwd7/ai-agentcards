@@ -170,6 +170,138 @@ async def get_available_tools():
     """Get list of available CrewAI tools"""
     return {"tools": AVAILABLE_TOOLS}
 
+@api_router.post("/generate-intelligent-team", response_model=IntelligentTeamResponse)
+async def generate_intelligent_team(request: IntelligentTeamRequest):
+    """Generate complete AI team configuration from mission statement"""
+    try:
+        # Determine which API key to use
+        if request.use_emergent_key:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            if not api_key:
+                raise HTTPException(status_code=500, detail="Emergent LLM key not configured")
+        else:
+            if not request.openai_api_key or not request.openai_api_key.strip():
+                raise HTTPException(status_code=400, detail="OpenAI API key required when not using Emergent key")
+            api_key = request.openai_api_key
+        
+        # Initialize LLM chat
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"intelligent-team-{uuid.uuid4()}",
+            system_message="You are an expert at creating comprehensive AI agent teams for CrewAI framework. Analyze missions and create complete team configurations with tasks, agents, tools, and workflows."
+        ).with_model("openai", "gpt-4o-mini")
+        
+        # Create comprehensive prompt for intelligent team generation
+        tools_info = "\n".join([f"- {tool['name']}: {tool['description']} (Class: {tool['class_name']}, Category: {tool['category']})" for tool in AVAILABLE_TOOLS])
+        
+        prompt = f"""Analyze this mission and generate a complete AI agent team configuration:
+
+MISSION DETAILS:
+- Name: {request.mission_name}
+- Objective: {request.mission_objective}
+- Description: {request.mission_description or "No additional context provided"}
+
+AVAILABLE CREWAI TOOLS:
+{tools_info}
+
+Generate a comprehensive JSON response with this EXACT structure:
+{{
+  "tasks": [
+    {{
+      "title": "Task Name",
+      "description": "Detailed task description",
+      "order": 1
+    }}
+  ],
+  "agents": [
+    {{
+      "task_index": 0,
+      "role": "Expert Role Name",
+      "goal": "Specific, actionable goal statement (1-2 sentences)",
+      "backstory": "Compelling professional backstory establishing expertise (2-3 sentences)"
+    }}
+  ],
+  "recommended_tools": ["tool_id_1", "tool_id_2"],
+  "workflow_type": "sequential" or "hierarchical",
+  "explanation": "Brief explanation of why this team structure was chosen"
+}}
+
+REQUIREMENTS:
+1. Generate 3-5 logical sequential tasks that build toward the mission objective
+2. Create one specialized agent per task with relevant expertise
+3. Recommend 3-8 appropriate tools from the available list based on task requirements
+4. Choose workflow type: "sequential" for step-by-step tasks, "hierarchical" for complex coordination
+5. Ensure tasks are specific, measurable, and achievable
+6. Make agent roles specific and expert-level (e.g., "Digital Marketing Strategist" not just "Marketer")
+7. Agent goals should be task-specific and actionable
+8. Agent backstories should establish credibility and relevant experience
+
+Respond with ONLY the JSON, no additional text or formatting."""
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parse the JSON response
+        import json
+        try:
+            team_config = json.loads(response.strip())
+            
+            # Create mission object
+            mission = Mission(
+                name=request.mission_name,
+                objective=request.mission_objective,
+                description=request.mission_description
+            )
+            
+            # Create tasks
+            tasks = []
+            for i, task_data in enumerate(team_config["tasks"]):
+                task = Task(
+                    title=task_data["title"],
+                    description=task_data["description"],
+                    order=task_data.get("order", i + 1)
+                )
+                tasks.append(task)
+            
+            # Create agents
+            agents = []
+            for agent_data in team_config["agents"]:
+                task_index = agent_data.get("task_index", 0)
+                if task_index < len(tasks):
+                    agent = Agent(
+                        task_id=tasks[task_index].id,
+                        role=agent_data["role"],
+                        goal=agent_data["goal"],
+                        backstory=agent_data["backstory"]
+                    )
+                    agents.append(agent)
+            
+            # Validate recommended tools
+            valid_tool_ids = {tool["id"] for tool in AVAILABLE_TOOLS}
+            recommended_tools = [
+                tool_id for tool_id in team_config["recommended_tools"] 
+                if tool_id in valid_tool_ids
+            ]
+            
+            return IntelligentTeamResponse(
+                mission=mission,
+                tasks=tasks,
+                agents=agents,
+                recommended_tools=recommended_tools,
+                workflow_type=team_config["workflow_type"],
+                explanation=team_config["explanation"]
+            )
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing error: {str(e)}, Response: {response}")
+            raise HTTPException(status_code=500, detail="Failed to parse AI response")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating intelligent team: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate intelligent team")
+
 @api_router.post("/generate-persona", response_model=PersonaResponse)
 async def generate_persona(request: GeneratePersonaRequest):
     """Generate AI persona (goal + backstory) from role and task description"""
