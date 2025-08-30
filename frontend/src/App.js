@@ -10,10 +10,6 @@ import {
   Step6ReviewGeneration 
 } from "./WizardSteps";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-// Main Home Component with Wizard Selection
 const Home = () => {
   const [selectedWizard, setSelectedWizard] = useState(null);
 
