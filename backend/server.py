@@ -435,6 +435,43 @@ async def generate_yaml(request: YAMLGenerateRequest):
         logger.error(f"Error generating YAML: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate YAML")
 
+@api_router.post("/livekit-token")
+async def generate_livekit_token(request: LiveKitTokenRequest):
+    """Generate LiveKit access token for voice session"""
+    try:
+        # Get LiveKit credentials from environment
+        livekit_api_key = os.environ.get('LIVEKIT_API_KEY')
+        livekit_api_secret = os.environ.get('LIVEKIT_API_SECRET')
+        
+        if not livekit_api_key or not livekit_api_secret:
+            raise HTTPException(status_code=500, detail="LiveKit credentials not configured")
+        
+        # Generate access token
+        token = api.AccessToken(livekit_api_key, livekit_api_secret) \
+            .with_identity(request.participant_name) \
+            .with_name(request.participant_name) \
+            .with_grants(api.VideoGrants(
+                room_join=True,
+                room=request.room_name,
+                can_publish=True,
+                can_subscribe=True,
+            ))
+        
+        # Set token expiration (24 hours)
+        token.ttl = 24 * 60 * 60  # 24 hours in seconds
+        
+        jwt_token = token.to_jwt()
+        
+        return {
+            "token": jwt_token,
+            "url": os.environ.get('LIVEKIT_URL', 'ws://localhost:7880'),
+            "room_name": request.room_name
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating LiveKit token: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate LiveKit token")
+
 def generate_crewai_yaml(team_data: dict) -> str:
     """Generate CrewAI-compatible YAML configuration"""
     
