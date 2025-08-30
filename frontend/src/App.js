@@ -492,10 +492,6 @@ const Step2TaskDecomposition = ({ data, mission, onUpdate }) => {
   );
 };
 
-const Home = () => {
-  return <WizardContainer />;
-};
-
 function App() {
   return (
     <div className="App">
