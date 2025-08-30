@@ -14,6 +14,10 @@ import {
 const Home = () => {
   const [selectedWizard, setSelectedWizard] = useState(null);
 
+  if (selectedWizard === "voice") {
+    return <VoiceWizardContainer />;
+  }
+
   if (selectedWizard === "intelligent") {
     return <IntelligentWizardContainer />;
   }
