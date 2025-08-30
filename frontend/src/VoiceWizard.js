@@ -1,23 +1,108 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Room, ConnectionState } from "livekit-client";
+import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Voice Wizard Container with LiveKit Integration Ready
+// Voice Wizard Container with Full LiveKit Integration
 const VoiceWizardContainer = () => {
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
-  const [conversationState, setConversationState] = useState("not_started");
+  const [connectionState, setConnectionState] = useState("disconnected");
+  const [room, setRoom] = useState(null);
   const [transcript, setTranscript] = useState([]);
   const [generatedTeam, setGeneratedTeam] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState(null);
 
-  const startVoiceDemo = () => {
-    setIsVoiceActive(true);
-    setConversationState("greeting");
-    
-    setTimeout(() => {
-      addToTranscript("assistant", "Hello! I'm your AI voice assistant ready to help you create an amazing AI agent team. What kind of project or business goal are you working on?");
-      setConversationState("listening");
-    }, 1000);
+  // Connect to LiveKit voice session
+  const connectToVoiceSession = async () => {
+    try {
+      setIsConnecting(true);
+      setError(null);
+      
+      // Generate unique room and participant names
+      const roomName = `crewai-voice-${Date.now()}`;
+      const participantName = `user-${Date.now()}`;
+      
+      // Get LiveKit token from backend
+      const response = await axios.post(`${API}/livekit-token`, {
+        room_name: roomName,
+        participant_name: participantName
+      });
+      
+      const { token, url } = response.data;
+      
+      // Create and connect to LiveKit room
+      const livekitRoom = new Room();
+      
+      // Set up event listeners
+      livekitRoom.on('connected', () => {
+        console.log('Connected to LiveKit room');
+        setConnectionState("connected");
+        addToTranscript("system", "🎤 Connected! Your AI voice assistant is ready. Start speaking about your business goals...");
+      });
+      
+      livekitRoom.on('disconnected', () => {
+        console.log('Disconnected from LiveKit room');
+        setConnectionState("disconnected");
+        addToTranscript("system", "Voice session ended.");
+      });
+      
+      livekitRoom.on('participantConnected', (participant) => {
+        console.log('Participant connected:', participant.identity);
+        if (participant.isAgent) {
+          addToTranscript("system", "AI assistant joined the conversation!");
+        }
+      });
+      
+      livekitRoom.on('trackSubscribed', (track, publication, participant) => {
+        console.log('Track subscribed:', track.kind, participant.identity);
+        
+        if (track.kind === 'audio' && participant.isAgent) {
+          // AI agent is speaking - attach audio element
+          const audioElement = track.attach();
+          audioElement.play();
+        }
+      });
+      
+      livekitRoom.on('dataReceived', (payload, participant) => {
+        // Handle data messages from the AI agent
+        try {
+          const message = JSON.parse(new TextDecoder().decode(payload));
+          console.log('Received message from AI:', message);
+          
+          if (message.type === 'transcript') {
+            addToTranscript("assistant", message.content);
+          } else if (message.type === 'team_generated') {
+            setGeneratedTeam(message.team);
+            addToTranscript("assistant", "🎉 Your AI team has been generated! Check the details below.");
+          }
+        } catch (e) {
+          console.log('Received non-JSON data:', new TextDecoder().decode(payload));
+        }
+      });
+      
+      // Connect to the room
+      await livekitRoom.connect(url, token);
+      setRoom(livekitRoom);
+      
+      // Enable microphone
+      await livekitRoom.localParticipant.setMicrophoneEnabled(true);
+      
+    } catch (error) {
+      console.error("Error connecting to voice session:", error);
+      setError(`Failed to connect: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const disconnectFromVoiceSession = () => {
+    if (room) {
+      room.disconnect();
+      setRoom(null);
+      setConnectionState("disconnected");
+    }
   };
 
   const addToTranscript = (role, message) => {
@@ -30,76 +115,33 @@ const VoiceWizardContainer = () => {
     setTranscript(prev => [...prev, newEntry]);
   };
 
-  const simulateVoiceInput = (message) => {
-    addToTranscript("user", message);
-    setConversationState("processing");
-    
-    setTimeout(() => {
-      const response = getAIResponse(message);
-      addToTranscript("assistant", response);
-      setConversationState("listening");
-      
-      if (shouldGenerateTeam()) {
-        generateDemoTeam();
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (room) {
+        room.disconnect();
       }
-    }, 1500);
-  };
+    };
+  }, [room]);
 
-  const getAIResponse = (userMessage) => {
-    const lower = userMessage.toLowerCase();
-    
-    if (lower.includes("marketing") || lower.includes("sales")) {
-      return "That sounds like a fantastic marketing opportunity! Can you tell me more about your target audience and what specific results you're hoping to achieve?";
-    } else if (lower.includes("website") || lower.includes("online")) {
-      return "Great! Are you looking to improve your website's performance, increase traffic, or enhance the user experience? What's your main challenge right now?";
-    } else if (lower.includes("business") || lower.includes("company")) {
-      return "Excellent! What industry is your business in, and what's the biggest challenge you'd like your AI team to help solve?";
-    } else {
-      return "Perfect! I have enough information to create your specialized AI team. Let me generate the perfect agents for your needs right now.";
-    }
-  };
-
-  const shouldGenerateTeam = () => {
-    return transcript.filter(t => t.role === "user").length >= 2;
-  };
-
-  const generateDemoTeam = () => {
-    setConversationState("generating");
-    
-    setTimeout(() => {
-      const demoTeam = {
-        agents: [
-          { id: "1", role: "Digital Marketing Strategist", goal: "Develop comprehensive marketing strategies that drive engagement and conversions" },
-          { id: "2", role: "Conversion Optimization Expert", goal: "Analyze and optimize conversion funnels to maximize ROI and user experience" },
-          { id: "3", role: "Customer Analytics Specialist", goal: "Provide data-driven insights on customer behavior and market trends" }
-        ],
-        tasks: [
-          { title: "Market Research & Analysis", description: "Research target market, competitors, and industry trends" },
-          { title: "Strategy Development", description: "Create comprehensive marketing and growth strategy" },
-          { title: "Implementation & Optimization", description: "Execute strategy and continuously optimize performance" }
-        ],
-        recommended_tools: ["serper_search", "google_sheets", "website_search"],
-        workflow_type: "sequential"
-      };
-      
-      setGeneratedTeam(demoTeam);
-      setConversationState("reviewing");
-      
-      addToTranscript("assistant", "Amazing! I've created your specialized AI team. You now have a Digital Marketing Strategist, Conversion Optimization Expert, and Customer Analytics Specialist working together. They'll use advanced tools like Google Search, data analysis, and website research. Your team is ready to download as a CrewAI configuration file!");
-    }, 3000);
-  };
-
-  if (!isVoiceActive) {
-    return <VoiceWizardLanding onStartVoice={startVoiceDemo} />;
+  if (connectionState === "disconnected") {
+    return (
+      <VoiceWizardLanding
+        onStartVoice={connectToVoiceSession}
+        isConnecting={isConnecting}
+        error={error}
+      />
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
       <VoiceInterface
-        conversationState={conversationState}
+        connectionState={connectionState}
         transcript={transcript}
         generatedTeam={generatedTeam}
-        onSimulateVoice={simulateVoiceInput}
+        onDisconnect={disconnectFromVoiceSession}
+        room={room}
       />
     </div>
   );
