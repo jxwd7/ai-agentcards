@@ -8,7 +8,7 @@ from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice import Agent as VoiceAgent
 from livekit.plugins import deepgram, openai, silero
 import aiohttp
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import openai
 from dotenv import load_dotenv
 
 # Load environment variables
