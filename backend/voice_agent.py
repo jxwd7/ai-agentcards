@@ -106,17 +106,13 @@ class CrewAIVoiceAgent:
             logger.info(f"Processing user input: {user_input}")
             self.context.add_message("user", user_input)
             
-            # Create conversational LLM
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            # Use OpenAI API
+            api_key = os.environ.get('OPENAI_API_KEY')
             if not api_key:
-                logger.error("Emergent LLM key not found")
+                logger.error("OpenAI API key not found")
                 return "I apologize, but I'm having trouble connecting to my AI services. Please try again later."
             
-            chat = LlmChat(
-                api_key=api_key,
-                session_id="voice-conversation",
-                system_message=self._get_system_prompt()
-            ).with_model("openai", "gpt-4o-mini")
+            openai.api_key = api_key
             
             conversation_context = self._build_conversation_context()
             
