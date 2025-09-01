@@ -303,7 +303,7 @@ Respond with ONLY the JSON, no additional text or formatting."""
             )
             
         except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {str(e)}, Response: {response}")
+            logger.error(f"JSON parsing error: {str(e)}, Response: {response_text}")
             raise HTTPException(status_code=500, detail="Failed to parse AI response")
             
     except HTTPException:
