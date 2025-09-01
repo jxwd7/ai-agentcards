@@ -101,3 +101,100 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the updated backend that now uses OpenAI API instead of Emergent LLM. Verify that all LLM-powered features work correctly with the new OpenAI integration."
+
+backend:
+  - task: "OpenAI API Integration for Generate Intelligent Team"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated backend to use OpenAI API instead of Emergent LLM. Need to test /api/generate-intelligent-team endpoint with use_emergent_key=true"
+
+  - task: "OpenAI API Integration for Generate Persona"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated backend to use OpenAI API instead of Emergent LLM. Need to test /api/generate-persona endpoint with use_emergent_key=true"
+
+  - task: "LiveKit Token Generation"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "LiveKit token generation endpoint needs verification to ensure it still works after OpenAI integration changes"
+
+  - task: "Voice Agent Connection and Processing"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Voice agent functionality needs testing to confirm it can connect and process requests properly with OpenAI integration"
+
+  - task: "All API Endpoints Functionality"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Comprehensive testing of all API endpoints to verify they work correctly with OpenAI integration"
+
+frontend:
+  - task: "Frontend Integration Testing"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Frontend testing not required for this OpenAI integration verification"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "OpenAI API Integration for Generate Intelligent Team"
+    - "OpenAI API Integration for Generate Persona"
+    - "LiveKit Token Generation"
+    - "Voice Agent Connection and Processing"
+    - "All API Endpoints Functionality"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Updated backend to use OpenAI API instead of Emergent LLM. Testing agent should verify that use_emergent_key=true now uses OpenAI API key from environment variables. Focus on testing the key LLM-powered endpoints and LiveKit functionality."
