@@ -254,7 +254,7 @@ Respond with ONLY the JSON, no additional text or formatting."""
         # Parse the JSON response
         import json
         try:
-            team_config = json.loads(response.strip())
+            team_config = json.loads(response_text.strip())
             
             # Create mission object
             mission = Mission(
