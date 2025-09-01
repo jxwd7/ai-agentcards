@@ -206,7 +206,7 @@ Once you have this basic information, you can help them create their AI team."""
                     "mission_name": requirements["mission_name"],
                     "mission_objective": requirements["mission_objective"],
                     "mission_description": requirements["mission_description"],
-                    "use_emergent_key": True
+                    "use_emergent_key": True  # This will now use OpenAI key from environment
                 }
                 
                 logger.info(f"Calling team generation API with payload: {payload}")
