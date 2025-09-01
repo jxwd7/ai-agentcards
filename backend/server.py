@@ -238,8 +238,18 @@ REQUIREMENTS:
 
 Respond with ONLY the JSON, no additional text or formatting."""
         
-        user_message = UserMessage(text=prompt)
-        response = await chat.send_message(user_message)
+        # Call OpenAI API
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert at creating comprehensive AI agent teams for CrewAI framework. Analyze missions and create complete team configurations with tasks, agents, tools, and workflows."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+        
+        response_text = response.choices[0].message.content
         
         # Parse the JSON response
         import json
