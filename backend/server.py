@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Literal
 import uuid
 from datetime import datetime
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import openai
 from livekit import api
 import time
 
