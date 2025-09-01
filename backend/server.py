@@ -316,22 +316,16 @@ Respond with ONLY the JSON, no additional text or formatting."""
 async def generate_persona(request: GeneratePersonaRequest):
     """Generate AI persona (goal + backstory) from role and task description"""
     try:
-        # Determine which API key to use
-        if request.use_emergent_key:
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
+        # Use OpenAI API key from environment or provided key
+        if request.use_emergent_key or not request.openai_api_key:
+            api_key = os.environ.get('OPENAI_API_KEY')
             if not api_key:
-                raise HTTPException(status_code=500, detail="Emergent LLM key not configured")
+                raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         else:
-            if not request.openai_api_key or not request.openai_api_key.strip():
-                raise HTTPException(status_code=400, detail="OpenAI API key required when not using Emergent key")
             api_key = request.openai_api_key
         
-        # Initialize LLM chat
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"persona-{uuid.uuid4()}",
-            system_message="You are an expert at creating detailed AI agent personas for multi-agent systems. Generate compelling, professional agent goals and backstories."
-        ).with_model("openai", "gpt-4o-mini")
+        # Initialize OpenAI client
+        openai.api_key = api_key
         
         # Create prompt for persona generation
         prompt = f"""Create a detailed persona for an AI agent with the following specifications:
