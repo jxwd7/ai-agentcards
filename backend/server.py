@@ -180,22 +180,16 @@ async def get_available_tools():
 async def generate_intelligent_team(request: IntelligentTeamRequest):
     """Generate complete AI team configuration from mission statement"""
     try:
-        # Determine which API key to use
-        if request.use_emergent_key:
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
+        # Use OpenAI API key from environment or provided key
+        if request.use_emergent_key or not request.openai_api_key:
+            api_key = os.environ.get('OPENAI_API_KEY')
             if not api_key:
-                raise HTTPException(status_code=500, detail="Emergent LLM key not configured")
+                raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         else:
-            if not request.openai_api_key or not request.openai_api_key.strip():
-                raise HTTPException(status_code=400, detail="OpenAI API key required when not using Emergent key")
             api_key = request.openai_api_key
         
-        # Initialize LLM chat
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"intelligent-team-{uuid.uuid4()}",
-            system_message="You are an expert at creating comprehensive AI agent teams for CrewAI framework. Analyze missions and create complete team configurations with tasks, agents, tools, and workflows."
-        ).with_model("openai", "gpt-4o-mini")
+        # Initialize OpenAI client
+        openai.api_key = api_key
         
         # Create comprehensive prompt for intelligent team generation
         tools_info = "\n".join([f"- {tool['name']}: {tool['description']} (Class: {tool['class_name']}, Category: {tool['category']})" for tool in AVAILABLE_TOOLS])
