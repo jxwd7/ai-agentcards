@@ -126,14 +126,23 @@ Respond naturally and conversationally. Ask ONE follow-up question to gather mor
 If you have enough information to create their AI team (they've mentioned business goals and some context), end your response with "READY_TO_GENERATE" on a new line.
 """
             
-            user_message = UserMessage(text=prompt)
-            response = await chat.send_message(user_message)
+            # Call OpenAI API
+            response = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": self._get_system_prompt()},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
             
-            logger.info(f"LLM response: {response}")
+            response_text = response.choices[0].message.content
+            logger.info(f"LLM response: {response_text}")
             
             # Check if ready to generate team
-            if "READY_TO_GENERATE" in response:
-                response = response.replace("READY_TO_GENERATE", "").strip()
+            if "READY_TO_GENERATE" in response_text:
+                response_text = response_text.replace("READY_TO_GENERATE", "").strip()
                 self.context.state = "generating"
                 logger.info("Triggering team generation")
                 
@@ -142,11 +151,11 @@ If you have enough information to create their AI team (they've mentioned busine
                 
                 if self.context.generated_team:
                     team_summary = self._create_team_summary()
-                    response += f"\n\n{team_summary}"
+                    response_text += f"\n\n{team_summary}"
                     self.context.state = "reviewing"
             
-            self.context.add_message("assistant", response)
-            return response
+            self.context.add_message("assistant", response_text)
+            return response_text
             
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
