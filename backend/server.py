@@ -342,20 +342,29 @@ Please generate EXACTLY in this JSON format:
 The goal should be specific to the task and role. The backstory should establish credibility and expertise.
 Respond with ONLY the JSON, no additional text."""
         
-        user_message = UserMessage(text=prompt)
-        response = await chat.send_message(user_message)
+        # Call OpenAI API
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert at creating detailed AI agent personas for multi-agent systems. Generate compelling, professional agent goals and backstories."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        response_text = response.choices[0].message.content
         
         # Parse the JSON response
         import json
         try:
-            persona_data = json.loads(response.strip())
+            persona_data = json.loads(response_text.strip())
             return PersonaResponse(
                 goal=persona_data["goal"],
                 backstory=persona_data["backstory"]
             )
         except json.JSONDecodeError:
             # Fallback if JSON parsing fails
-            lines = response.strip().split('\n')
             goal = f"Execute {request.role.lower()} responsibilities with expertise and attention to detail."
             backstory = f"A seasoned {request.role.lower()} with extensive experience in handling complex challenges and delivering high-quality results."
             
